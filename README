@@ -1,0 +1,13 @@
+Named Data Networking Link Protocol
+
+NDNLP is a link protocol for delivering CCNx messages over a local one-hop link.
+NDNLP provides the following two features:
+* Fragmentation and Reassembly
+* Acknowledgement and Retransmission
+
+ndnld/ is an implementation of NDNLP to use with CCNx on linux.
+
+More details:
+http://www.named-data.org/techreport/TR006-LinkProtocol.pdf
+
+
