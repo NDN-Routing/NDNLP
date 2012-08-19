@@ -1,11 +1,10 @@
 #include <stdlib.h>
 #include <string.h>
-#include <endian.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <netpacket/packet.h>
 #include <arpa/inet.h>
 #include <sys/ioctl.h>
+#include <fcntl.h>
 #include <net/if.h>
 #include "ndnld.h"
 
@@ -269,8 +268,10 @@ LMD LinkC_lUdp(PollMgr pm) {
 	addr.sin6_family = AF_INET6;
 	addr.sin6_port = htobe16(LinkC_udp_port);
 
-	int sock = socket(AF_INET6, SOCK_DGRAM | SOCK_NONBLOCK, 0);
+	int sock = socket(AF_INET6, SOCK_DGRAM, 0);
 	if (sock == -1) return NULL;
+	int flags = fcntl(sock, F_GETFL, 0);
+	fcntl(sock, F_SETFL, flags | O_NONBLOCK);
 	int res = bind(sock, (struct sockaddr*)(&addr), sizeof(struct sockaddr_in6));
 	if (res != 0) {
 		close(sock);
@@ -290,6 +291,7 @@ Link LinkC_rUdp(LMD lmd, SockAddr rAddr) {
 	return link;
 }
 
+#ifdef ENABLE_ETHER
 LMD LinkC_lEth(PollMgr pm, char* ifname) {
 	int mtu;
 
@@ -321,6 +323,10 @@ Link LinkC_rEth(LMD lmd, SockAddr rAddr) {
 	if (!LMD_registered(lmd, rAddr)) link = Link_ctorDgram(lmd, rAddr);
 	return link;
 }
+#else
+LMD LinkC_lEth(PollMgr pm, char* ifname) { return NULL; }
+Link LinkC_rEth(LMD lmd, SockAddr rAddr) { return NULL; }
+#endif
 
 SockAddr LinkC_parseIP(char* str) {
 	struct sockaddr_in6 addr;
@@ -337,6 +343,7 @@ SockAddr LinkC_parseIP(char* str) {
 	return SockAddr_create(&addr, sizeof(struct sockaddr_in6));
 }
 
+#ifdef ENABLE_ETHER
 SockAddr LinkC_parseEther(char* str) {
 	struct ether_addr* phyaddr = ether_aton(str);
 	if (phyaddr == NULL) return NULL;
@@ -360,4 +367,8 @@ bool LinkC_getIfInfo(char* ifname, int* pifindex, int* pmtu) {
 	close(sock);
 	return true;
 }
+#else
+SockAddr LinkC_parseEther(char* str) { return NULL; }
+bool LinkC_getIfInfo(char* ifname, int* pifindex, int* pmtu) { return false; }
+#endif
 

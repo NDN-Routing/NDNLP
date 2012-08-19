@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <endian.h>
 #include <ccn/ccn.h>
 #include <ccn/hashtb.h>
 #include <ccn/uri.h>

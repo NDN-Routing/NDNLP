@@ -1,6 +1,6 @@
 CC = cc
-CFLAGS = -g -Wall -Wpointer-arith -Wreturn-type -Wstrict-prototypes -D_BSD_SOURCE -std=gnu99
-LIBS = -lccn -lcrypto
+CFLAGS = -g -Wall -Wpointer-arith -Wreturn-type -Wstrict-prototypes -D_BSD_SOURCE -std=gnu99 -I/usr/local/include/
+LIBS = -lccn -lcrypto -B/usr/local/lib/
 SRCS = Utility.c CcnClient.c SeqNum.c NdnlpPkt.c DataPkt.c AckPkt.c MsgSlicer.c PartialMsg.c SentPkt.c AckQueue.c Link.c NdnlpSvc.c ConnMgmt.c
 
 PROGRAMS = ndnlink ndnld ndnldc unittest
@@ -36,8 +36,8 @@ rununittest: unittest
 
 install: $(INSTALL_PROGRAMS)
 	killall $(INSTALL_PROGRAMS) || true
-	cp -t $(INSTALL_PATH) $(INSTALL_PROGRAMS)
-	cd $(INSTALL_PATH); chown root:root $(INSTALL_PROGRAMS); chmod 4755 $(INSTALL_SETUID)
+	cp $(INSTALL_PROGRAMS) $(INSTALL_PATH)
+	cd $(INSTALL_PATH); chown root:0 $(INSTALL_PROGRAMS); chmod 4755 $(INSTALL_SETUID)
 
 uninstall:
 	cd $(INSTALL_PATH); rm -f $(INSTALL_PROGRAMS)

@@ -6,7 +6,6 @@
 #include <sys/time.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <netpacket/packet.h>
 #include <arpa/inet.h>
 #include "ndnld.h"
 
@@ -79,10 +78,12 @@ struct ccn_charbuf* SockAddr_hashkey(SockAddr self) {
 			ccn_charbuf_append(self->hashkey, &(sin6->sin6_addr), sizeof(struct in6_addr));
 			ccn_charbuf_append(self->hashkey, &(sin6->sin6_port), sizeof(in_port_t));
 			} break;
+#ifdef __linux__
 		case AF_PACKET: {
 			struct sockaddr_ll* sll = (struct sockaddr_ll*)self->addr;
 			ccn_charbuf_append(self->hashkey, &(sll->sll_addr), sll->sll_halen);
 			} break;
+#endif
 		default:
 			ccn_charbuf_append(self->hashkey, self->addr, self->addrlen);
 			break;
@@ -116,10 +117,12 @@ char* SockAddr_toString(SockAddr self) {
 			inet_ntop(AF_INET6, &(sin6->sin6_addr), ntopbuf, INET6_ADDRSTRLEN);
 			sprintf(buf, "SockAddr IPv6 %s port=%d", ntopbuf, be16toh(sin6->sin6_port));
 			} break;
+#ifdef __linux__
 		case AF_PACKET: {
 			struct sockaddr_ll* sll = (struct sockaddr_ll*)self->addr;
 			sprintf(buf, "SockAddr Ethernet %s", ether_ntoa((struct ether_addr*)sll->sll_addr));
 			} break;
+#endif
 		default:
 			sprintf(buf, "SockAddr family=%x", self->addr->sa_family);
 			break;
@@ -532,6 +535,7 @@ void CapsH_drop() {
 	seteuid(CapsH_ruid);
 }
 
+#ifdef ENABLE_ETHER
 int CapsH_createPacketSock(int socket_type, int protocol) {
 	int sock;
 	seteuid(CapsH_euid);
@@ -539,4 +543,5 @@ int CapsH_createPacketSock(int socket_type, int protocol) {
 	seteuid(CapsH_ruid);
 	return sock;
 }
+#endif
 

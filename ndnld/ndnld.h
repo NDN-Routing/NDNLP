@@ -6,7 +6,16 @@
 #include <poll.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#ifdef __linux__
+#include <endian.h>
+#elif __FreeBSD__
+#include <sys/endian.h>
+#endif
+#ifdef __linux__
+#define ENABLE_ETHER
 #include <netinet/ether.h>
+#include <netpacket/packet.h>
+#endif
 #include <ccn/ccn.h>
 #include <ccn/hashtb.h>
 #include <ccn/reg_mgmt.h>
