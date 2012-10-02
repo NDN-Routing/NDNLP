@@ -13,28 +13,31 @@ Read [NDN Technical Report NDN-0006](http://www.named-data.org/techreport/TR006-
 
 ## SYSTEM REQUIREMENTS
 ### CCNx
-ndnld has been tested with CCNx 0.6.0.
+ndnld has been tested with CCNx 0.6.0 and CCNx 0.6.2-rc1.
 
 ### Linux
-ndnld has been tested with Ubuntu 11.10.
+ndnld has been tested with Ubuntu 11.10 and Ubuntu 12.04.
 
 * [CUnit](http://cunit.sourceforge.net/) is required to run unit tests.
 
 ### FreeBSD
 ndnld has been tested with FreeBSD 9.
 
-Limitations:
-
 * Unit tests do not compile on FreeBSD.
 * UDP lower-layer with IPv6 addresses is always available.
 * UDP lower-layer with IPv4 addresses is available when `ipv6_ipv4mapping="YES"` is specified in /etc/rc.conf.
 * Ethernet lower-layer is not supported due to lack of AF\_PACKET.
+
+### Mac OS
+ndnld compiles on Mac OS X 10.6.8, but its functionality is not tested.
 
 ## USAGE
 ### Install
 	cd ndnld/
 	make
 	sudo make install
+
+On FreeBSD if you plan to use UDP lower-layer with IPv4 addresses, add `ipv6_ipv4mapping="YES"` to /etc/rc.conf, and reboot the machine.
 
 ### Start
 	ccndstart

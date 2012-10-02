@@ -12,8 +12,8 @@ void usage(void) {
 	"ndnldc -c -p udp -h 192.0.2.1\nndnldc -c -p udp -h 2001:DB8::1\n\tcreate UDP connection\n"
 	"ndnldc -c -p ether -h 08:00:27:01:01:01 -i eth1\n\tcreate Ethernet connection\n"
 	"ndnldc -c ... -a -S 100 -C 5 -R 1000 -A 300\n\tRLA SentPktsCapacity RetryCount RetransmitTime AcknowledgeTime\n"
-	"ndndlc -d -f 11\n\tdestroy connection\n"
-	"ndndlc -l\n\tlist connections\n"
+	"ndnldc -d -f 11\n\tdestroy connection\n"
+	"ndnldc -l\n\tlist connections\n"
 	"ndnldc -r -f 11 -n ccnx:/example\n\tregister prefix\n"
 	"ndnldc -u -f 11 -n ccnx:/example\n\tunregister prefix\n"
 	);
