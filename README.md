@@ -9,7 +9,7 @@ NDNLP provides the following two features:
 
 ndnld/ is an implementation of NDNLP.
 
-Read [NDN Technical Report NDN-0006](http://www.named-data.org/techreport/TR006-LinkProtocol.pdf) for more details.
+Read [NDN Technical Report NDN-0006](http://www.named-data.net/techreport/TR006-LinkProtocol.pdf) for more details.
 
 ## SYSTEM REQUIREMENTS
 ### CCNx
@@ -80,6 +80,6 @@ Commands to register a prefix on FaceID 11:
 	ndn@r1:~$ ndnldc -r -f 11 -n ccnx:/example
 
 ### Other Commands
-Please read section 3.4 of [technical report](http://www.named-data.org/techreport/TR006-LinkProtocol.pdf).
+Please read section 3.4 of [technical report](http://www.named-data.net/techreport/TR006-LinkProtocol.pdf).
 
 
