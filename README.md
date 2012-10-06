@@ -7,16 +7,16 @@ NDNLP provides the following two features:
 * Fragmentation and Reassembly
 * Acknowledgement and Retransmission
 
-ndnld/ is an implementation of NDNLP.
+ndnld is an implementation of NDNLP.
 
 Read [NDN Technical Report NDN-0006](http://www.named-data.net/techreport/TR006-LinkProtocol.pdf) for more details.
 
 ## SYSTEM REQUIREMENTS
 ### CCNx
-ndnld has been tested with CCNx 0.6.0 and CCNx 0.6.2-rc1.
+ndnld has been tested with CCNx 0.6.2.
 
 ### Linux
-ndnld has been tested with Ubuntu 11.10 and Ubuntu 12.04.
+ndnld has been tested with Ubuntu 12.04.
 
 * [CUnit](http://cunit.sourceforge.net/) is required to run unit tests.
 
@@ -29,11 +29,10 @@ ndnld has been tested with FreeBSD 9.
 * Ethernet lower-layer is not supported due to lack of AF\_PACKET.
 
 ### Mac OS
-ndnld compiles on Mac OS X 10.6.8, but its functionality is not tested.
+ndnld compiles on Mac OS X 10.6.8, but its functionality is not fully tested.
 
 ## USAGE
 ### Install
-	cd ndnld/
 	make
 	sudo make install
 
@@ -49,7 +48,6 @@ The program will daemonize itself.
 	killall ndnld
 
 ### Uninstall
-	cd ndnld/
 	sudo make uninstall
 
 ## CONFIGURATION
