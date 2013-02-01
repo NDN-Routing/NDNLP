@@ -24,6 +24,17 @@
 	#define htole64(x) OSSwapHostToLittleInt64(x)
 	#define be64toh(x) OSSwapBigToHostInt64(x)
 	#define le64toh(x) OSSwapLittleToHostInt64(x)
+	#define ENABLE_ETHER_BPF
+// not defined in BSD, but we need it to retrieve dest MAC addr of outgoing packets
+struct sockaddr_ll {
+	unsigned short sll_family;   /* Always AF_PACKET */
+	unsigned short sll_protocol; /* Physical layer protocol */
+	int            sll_ifindex;  /* Interface number */
+	unsigned short sll_hatype;   /* Header type */
+	unsigned char  sll_pkttype;  /* Packet type */
+	unsigned char  sll_halen;    /* Length of address */
+	unsigned char  sll_addr[8];  /* Physical layer address */
+};
 #endif
 #ifdef __linux__
 	#define ENABLE_ETHER
@@ -85,6 +96,12 @@ typedef int BufMode;
 #define BufMode_own 1//StreamBuf/DgramBuf should free data
 #define BufMode_clone 2//StreamBuf/DgramBuf should clone data
 #define BufMode_use 3//StreamBuf/DgramBuf can use data, but should not free it
+
+enum SocketType {
+	SockType_Dgram,
+	SockType_Stream,
+	SockType_BPF,
+};
 
 
 //class StreamBuffer
@@ -174,7 +191,8 @@ typedef void (*NBSCb)(void* data, NBS nbs);
 
 //class NonBlockingSocket
 struct NBS_cls {
-	bool isDgram;
+	//bool isDgram;
+	int sock_type;
 	int sockR;
 	StreamBuf sbufR;
 	DgramBuf dbufR;
@@ -188,6 +206,7 @@ struct NBS_cls {
 	NBSCb dataArrivalCb;
 	void* dataArrivalCbData;
 	PollMgr pm;
+	int bpf_len;
 };
 //typedef struct NBS_cls* NBS;
 NBS NBS_ctor(int sockR, int sockW, bool isDgram);
@@ -212,7 +231,7 @@ void NBS_deferredWrite(NBS self);
 //class CapabilityHelper
 void CapsH_drop(void);//drop capabilities; called when the program starts
 int CapsH_createPacketSock(int socket_type, int protocol);//create a AF_PACKET socket
-
+int CapsH_createBPF(char* ifname); // create a BPF device (only for BSD)
 
 //class CcnbMessage
 typedef struct ccn_charbuf* CcnbMsg;

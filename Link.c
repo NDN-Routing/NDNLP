@@ -6,6 +6,7 @@
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <net/if.h>
+#include <net/bpf.h>
 #include "ndnld.h"
 
 Link Link_ctorStream(NBS nbs) {
@@ -278,7 +279,7 @@ LMD LinkC_lUdp(PollMgr pm) {
 		return NULL;
 	}
 
-	NBS nbs = NBS_ctor(sock, sock, true);
+	NBS nbs = NBS_ctor(sock, sock, SockType_Dgram);
 	NBS_pollAttach(nbs, pm);
 
 	LMD lmd = LMD_ctor(nbs, NULL, LinkC_udp_mtu);
@@ -308,11 +309,11 @@ LMD LinkC_lEth(PollMgr pm, char* ifname) {
 		return NULL;
 	}
 
-	NBS nbs = NBS_ctor(sock, sock, true);
+	NBS nbs = NBS_ctor(sock, sock, SocketMode.Dgram);
 	NBS_pollAttach(nbs, pm);
 
 	SockAddr lAddr = SockAddr_create(&addr, sizeof(struct sockaddr_ll));
-	LMD lmd = LMD_ctor(nbs, lAddr, mtu);
+	LMD lmd = LMD_ctor(nbs, lAddr, mtu); //LMD defined on line 647 of ndnld.h
 	return lmd;
 }
 
@@ -323,6 +324,31 @@ Link LinkC_rEth(LMD lmd, SockAddr rAddr) {
 	if (!LMD_registered(lmd, rAddr)) link = Link_ctorDgram(lmd, rAddr);
 	return link;
 }
+#elif defined(ENABLE_ETHER_BPF) // Create BPF device
+LMD LinkC_lEth(PollMgr pm, char* ifname) {
+	int mtu;
+	
+	struct sockaddr_ll addr = {0};
+	addr.sll_family = AF_INET;
+	addr.sll_protocol = htobe16(LinkC_eth_proto);
+	if (!LinkC_getIfInfo(ifname, &(addr.sll_ifindex), &mtu)) return NULL;
+
+	int bpf = CapsH_createBPF(ifname);
+	if (bpf == -1) return NULL;
+	
+	NBS nbs = NBS_ctor(bpf, bpf, SockType_BPF);
+	NBS_pollAttach(nbs, pm);
+	
+	// request size of BPF buffer
+	if( ioctl( bpf, BIOCGBLEN, &nbs->bpf_len ) == -1 )
+ 	    return NULL;	
+
+	SockAddr lAddr = SockAddr_create(&addr, sizeof(struct sockaddr_ll));
+	LMD lmd = LMD_ctor(nbs, lAddr, mtu); //LMD defined on line 647 of ndnld.h
+	//SockAddr lAddr	
+	return lmd;
+}
+Link LinkC_rEth(LMD lmd, SockAddr rAddr) { return NULL; }
 #else
 LMD LinkC_lEth(PollMgr pm, char* ifname) { return NULL; }
 Link LinkC_rEth(LMD lmd, SockAddr rAddr) { return NULL; }
@@ -362,6 +388,21 @@ bool LinkC_getIfInfo(char* ifname, int* pifindex, int* pmtu) {
 	strncpy(ifr.ifr_name, ifname, IFNAMSIZ);
 	if (0 != ioctl(sock, SIOCGIFINDEX, &ifr)) { close(sock); return false; }
 	*pifindex = ifr.ifr_ifindex;
+	if (0 != ioctl(sock, SIOCGIFMTU, &ifr)) { close(sock); return false; }
+	*pmtu = ifr.ifr_mtu;
+	close(sock);
+	return true;
+}
+#elif defined(ENABLE_ETHER_BPF)
+SockAddr LinkC_parseEther(char* str) { return NULL; }
+
+bool LinkC_getIfInfo(char* ifname, int* pifindex, int* pmtu) {
+	int sock = socket(AF_INET, SOCK_DGRAM, 0);
+	struct ifreq ifr;
+	strncpy(ifr.ifr_name, ifname, IFNAMSIZ);
+	//if (0 != ioctl(sock, SIOCGIFINDEX, &ifr)) { close(sock); return false; }
+	//*pifindex = ifr.ifr_ifindex;
+	*pifindex = if_nametoindex(ifname);
 	if (0 != ioctl(sock, SIOCGIFMTU, &ifr)) { close(sock); return false; }
 	*pmtu = ifr.ifr_mtu;
 	close(sock);
