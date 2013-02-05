@@ -348,7 +348,13 @@ LMD LinkC_lEth(PollMgr pm, char* ifname) {
 	//SockAddr lAddr	
 	return lmd;
 }
-Link LinkC_rEth(LMD lmd, SockAddr rAddr) { return NULL; }
+Link LinkC_rEth(LMD lmd, SockAddr rAddr) {
+	((struct sockaddr_ll*)SockAddr_addr(rAddr))->sll_ifindex = ((struct sockaddr_ll*)SockAddr_addr(LMD_localAddr(lmd)))->sll_ifindex;
+
+	Link link = NULL;
+	if (!LMD_registered(lmd, rAddr)) link = Link_ctorDgram(lmd, rAddr);
+	return link;
+}
 #else
 LMD LinkC_lEth(PollMgr pm, char* ifname) { return NULL; }
 Link LinkC_rEth(LMD lmd, SockAddr rAddr) { return NULL; }
