@@ -14,7 +14,7 @@ void test_Link_stream(void) {
 		CU_ASSERT_NOT_EQUAL(res, -1);
 		CU_ASSERT(0 == fcntl(sockets[i], F_SETFL, res | O_NONBLOCK));
 	}
-	
+
 	NBS nbs1 = NBS_ctor(sockets[1], sockets[2], false);
 	NBS nbs2 = NBS_ctor(sockets[3], sockets[0], false);
 	PollMgr pm = PollMgr_ctor(50);
@@ -48,6 +48,7 @@ void test_Link_stream(void) {
 	close(sockets[0]); close(sockets[1]); close(sockets[2]); close(sockets[3]);
 }
 
+#if __linux__
 void test_Link_udp(void) {
 	struct sockaddr_in6 addrs[4]; int sockets[4];
 	memset(addrs, 0, sizeof(addrs));
@@ -119,10 +120,16 @@ void test_Link_udp(void) {
 	PollMgr_dtor(pm);
 	for (int i = 0; i < 4; ++i) close(sockets[i]);
 }
+#else
+#warning "Test test_Link_udp needs to be adapted for other platforms. SOCK_NONBLOCK is not universally defined"
+#endif
+
 
 void suite_Link(void) {
 	CU_pSuite suite = CU_add_suite("Link", NULL, NULL);
 	CU_add_test(suite, "Link_stream", test_Link_stream);
+#if __linux__
 	CU_add_test(suite, "Link_udp", test_Link_udp);
+#endif
 }
 

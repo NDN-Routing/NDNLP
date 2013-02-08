@@ -1,5 +1,9 @@
 #include <CUnit/CUnit.h>
 #include <CUnit/Automated.h>
+#include "CUnit/Console.h"
+#include "CUnit/Automated.h"
+#include "CUnit/CUCurses.h"   /* only on systems having curses */
+
 
 void suite_Utility(void);
 void suite_CcnClient(void);
@@ -23,6 +27,8 @@ int main(void) {
 	suite_Link();
 
 	CU_automated_run_tests();
+	CU_console_run_tests();
+	CU_curses_run_tests();
 	CU_list_tests_to_file();
 	CU_cleanup_registry();
 	return 0;

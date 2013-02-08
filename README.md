@@ -16,7 +16,7 @@ Read [NDN Technical Report NDN-0006](http://www.named-data.net/techreport/TR006-
 ndnld has been tested with CCNx 0.6.2.
 
 ### Linux
-ndnld has been tested with Ubuntu 12.04.
+ndnld has been tested with Ubuntu 12.04 and OSX Mountain Lion.
 
 * [CUnit](http://cunit.sourceforge.net/) is required to run unit tests.
 
@@ -29,26 +29,28 @@ ndnld has been tested with FreeBSD 9.
 * Ethernet lower-layer is not supported due to lack of AF\_PACKET.
 
 ### Mac OS
-ndnld compiles on Mac OS X 10.6.8, but its functionality is not fully tested.
+ndnld compiles on Mac OS X 10.6.8 and 10.8.2, but its functionality is not fully tested.
 
 ## USAGE
 ### Install
-	make
-	sudo make install
+        ./waf configure --debug --test
+        ./waf
+        sudo ./waf install
 
 On FreeBSD if you plan to use UDP lower-layer with IPv4 addresses, add `ipv6_ipv4mapping="YES"` to /etc/rc.conf, and reboot the machine.
 
 ### Start
-	ccndstart
-	ndnld
+	# Start ccnd if it is not started yet, e.g.,
+        # ccndstart
+        sudo ndnld
 
 The program will daemonize itself.
 
 ### Stop
-	killall ndnld
+        sudo killall ndnld
 
 ### Uninstall
-	sudo make uninstall
+        sudo ./waf uninstall
 
 ## CONFIGURATION
 **ndnldc** is a command-line utility to configure ndnld.
@@ -59,23 +61,23 @@ Configuration does not persist after ndnld is restarted.
 ### Create UDP Connection
 Commands to create a UDP connection between r1 (192.0.2.1) and r2 (192.0.2.2):
 
-	ndn@r1:~$ ndnldc -c -p udp -h 192.0.2.2
-	ndn@r2:~$ ndnldc -c -p udp -h 192.0.2.1
+        ndn@r1:~$ ndnldc -c -p udp -h 192.0.2.2
+        ndn@r2:~$ ndnldc -c -p udp -h 192.0.2.1
 
 *FaceID* will be echoed back.
 
 ### Create Ethernet Connection
 Commands to create a Ethernet connection between r1 (eth1, 08:00:27:01:01:01) and r2 (eth2, 08:00:27:01:01:02):
 
-	ndn@r1:~$ ndnldc -c -p ether -h 08:00:27:01:01:02 -i eth1
-	ndn@r2:~$ ndnldc -c -p ether -h 08:00:27:01:01:01 -i eth2
+        ndn@r1:~$ ndnldc -c -p ether -h 08:00:27:01:01:02 -i eth1
+        ndn@r2:~$ ndnldc -c -p ether -h 08:00:27:01:01:01 -i eth2
 
 *FaceID* will be echoed back.
 
 ### Register a Prefix
 Commands to register a prefix on FaceID 11:
 
-	ndn@r1:~$ ndnldc -r -f 11 -n ccnx:/example
+        ndn@r1:~$ ndnldc -r -f 11 -n ccnx:/example
 
 ### Other Commands
 Please read section 3.4 of [technical report](http://www.named-data.net/techreport/TR006-LinkProtocol.pdf).
