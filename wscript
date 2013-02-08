@@ -38,10 +38,8 @@ def configure(conf):
         conf.env.append_value('CFLAGS', ['-O3', '-g', '-Qunused-arguments'])
 
     if conf.options._test:
-        if conf.check_cfg(package='cunit', args=['--cflags', '--libs'], uselib_store='CUNIT', mandatory=False):
-            conf.define ("HAVE_CUNIT", 1)
-        else:
-            conf.fatal("Unit tests require CUnit library")
+        conf.check_cfg(package='cunit', args=['--cflags', '--libs'], uselib_store='CUNIT', mandatory=True)
+        conf.check_cfg(package='ncurses', args=['--cflags', '--libs'], uselib_store='CUNIT', mandatory=True)
 
         conf.define ('_TESTS', 1)
         conf.env.TEST = 1
@@ -65,8 +63,17 @@ def build (bld):
              # SUID should not be used. It is user's responsibility to start app with root privileges!
             )
 
-    bld (target = "unittest",
-         features = "c",
-         source = bld.path.ant_glob(['test/*.test.c']),
-         use = "NDNLP_COMMON CUNIT",
-         includes = "src")
+    if bld.env['TEST']:
+        bld (target = "unittest",
+             features = "c cprogram",
+             source = bld.path.ant_glob(['test/*.c']),
+             use = "NDNLP_COMMON CCNX SSL CUNIT NCURSES",
+             includes = "src",
+             install_path = None) # this prevents installation
+
+def rununittest (bld):
+    Logs.info ("Running unittests")
+
+    import subprocess
+    from subprocess import call
+    subprocess.call ("./build/unittest")
