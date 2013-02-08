@@ -28,6 +28,7 @@ def configure(conf):
     conf.check_ccnx (path=conf.options.ccnx_dir)
 
     # conf.env.append_value('CFLAGS', ['-Wpointer-arith', '-Wreturn-type', '-Wstrict-prototypes'])
+    conf.env.append_value('CFLAGS', ['-std=gnu99'])
     conf.define ('_BSD_SOURCE', 1)
 
     if conf.options.debug:
