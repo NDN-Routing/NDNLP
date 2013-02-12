@@ -64,6 +64,7 @@ void test_StreamBuf(void) {
 	StreamBuf_dtor(target);
 }
 
+#ifdef __linux__
 void test_NBS_stream(void) {
 	int sockets[4]; int res;
 	CU_ASSERT(0 == socketpair(AF_UNIX, SOCK_STREAM, 0, sockets + 0));
@@ -179,6 +180,9 @@ void test_NBS_dgram(void) {
 	SockAddr_dtor(srcaddr); SockAddr_dtor(dstaddr);
 	close(sockets[0]); close(sockets[1]); close(sockets[2]); close(sockets[3]);
 }
+#else
+#warning "Some tests are disabled due to use of SOCK_NONBLOCK"
+#endif
 
 void test_PollMgr_NBS(void) {
 	int sockets[64]; NBS nbs[16]; int res;
@@ -229,8 +233,10 @@ void suite_Utility(void) {
 	CU_add_test(suite, "DateTime_now", test_DateTime_now);
 	CU_add_test(suite, "StreamBuf", test_StreamBuf);
 	//CU_add_test(suite, "DgramBuf", test_DgramBuf);
+#ifdef __linux__
 	CU_add_test(suite, "NBS_stream", test_NBS_stream);
 	CU_add_test(suite, "NBS_dgram", test_NBS_dgram);
+#endif
 	CU_add_test(suite, "PollMgr_NBS", test_PollMgr_NBS);
 }
 
