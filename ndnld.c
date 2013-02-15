@@ -21,7 +21,7 @@ static void daemonize(void)
 }
 
 int main(int argc, char* argv[]) {
-	daemonize();
+	//daemonize();
 
 	CapsH_drop();
 

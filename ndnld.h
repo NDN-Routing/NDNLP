@@ -192,7 +192,7 @@ typedef void (*NBSCb)(void* data, NBS nbs);
 //class NonBlockingSocket
 struct NBS_cls {
 	//bool isDgram;
-	int sock_type;
+	enum SocketType sock_type;
 	int sockR;
 	StreamBuf sbufR;
 	DgramBuf dbufR;
@@ -209,7 +209,7 @@ struct NBS_cls {
 	int bpf_len;
 };
 //typedef struct NBS_cls* NBS;
-NBS NBS_ctor(int sockR, int sockW, bool isDgram);
+NBS NBS_ctor(int sockR, int sockW, enum SocketType);
 void NBS_dtor(NBS self);
 bool NBS_isDgram(NBS self);
 int NBS_sockR(NBS self);

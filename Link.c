@@ -1,7 +1,10 @@
 #include <stdlib.h>
+#include <stdio.h>
+#include <errno.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <net/ethernet.h>
 #include <arpa/inet.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>
@@ -309,7 +312,7 @@ LMD LinkC_lEth(PollMgr pm, char* ifname) {
 		return NULL;
 	}
 
-	NBS nbs = NBS_ctor(sock, sock, SocketMode.Dgram);
+	NBS nbs = NBS_ctor(sock, sock, SockType_Dgram);
 	NBS_pollAttach(nbs, pm);
 
 	SockAddr lAddr = SockAddr_create(&addr, sizeof(struct sockaddr_ll));
@@ -337,15 +340,18 @@ LMD LinkC_lEth(PollMgr pm, char* ifname) {
 	if (bpf == -1) return NULL;
 	
 	NBS nbs = NBS_ctor(bpf, bpf, SockType_BPF);
+
 	NBS_pollAttach(nbs, pm);
 	
 	// request size of BPF buffer
-	if( ioctl( bpf, BIOCGBLEN, &nbs->bpf_len ) == -1 )
+	if( ioctl( bpf, BIOCGBLEN, &nbs->bpf_len ) == -1 ) {
+	    perror("error getting size of bpf device\n");
  	    return NULL;	
+	}
 
 	SockAddr lAddr = SockAddr_create(&addr, sizeof(struct sockaddr_ll));
 	LMD lmd = LMD_ctor(nbs, lAddr, mtu); //LMD defined on line 647 of ndnld.h
-	//SockAddr lAddr	
+	//SockAddr lAddr
 	return lmd;
 }
 Link LinkC_rEth(LMD lmd, SockAddr rAddr) {
@@ -400,7 +406,17 @@ bool LinkC_getIfInfo(char* ifname, int* pifindex, int* pmtu) {
 	return true;
 }
 #elif defined(ENABLE_ETHER_BPF)
-SockAddr LinkC_parseEther(char* str) { return NULL; }
+SockAddr LinkC_parseEther(char* str) {
+	struct ether_addr* phyaddr = ether_aton(str);
+	if (phyaddr == NULL) return NULL;
+
+	struct sockaddr_ll addr;
+	addr.sll_family = AF_INET;
+	addr.sll_protocol = htobe16(LinkC_eth_proto);
+	addr.sll_halen = sizeof(struct ether_addr);
+	memcpy(addr.sll_addr, phyaddr, sizeof(struct ether_addr));
+	return SockAddr_create(&addr, sizeof(struct sockaddr_ll));
+}
 
 bool LinkC_getIfInfo(char* ifname, int* pifindex, int* pmtu) {
 	int sock = socket(AF_INET, SOCK_DGRAM, 0);
