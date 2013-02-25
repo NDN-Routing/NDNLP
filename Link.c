@@ -79,6 +79,7 @@ void Link_write(Link self, NdnlpPkt pkt) {
 	}
 	size_t len = NdnlpPkt_length(pkt);
 	uint8_t* buf = NdnlpPkt_detachBuf(pkt);
+	printf("before NBS_write\n"); /**/
 	NBS_write(self->nbs, buf, 0, len, self->addr);
 }
 
@@ -220,7 +221,17 @@ void LMD_demux(LMD self) {
 	void* buf = malloc(self->mtu); size_t len;
 
 	hashtb_start(self->demux, hte);
+//	printf("LMD_demux asking NBS_read to put packet into: %p\n", buf);
 	while ((len = NBS_read(self->nbs, buf, self->mtu, addr)) > 0) {
+		printf(" -- processing packet in LMD_demux-- \n");
+		printf(" -- location: %p, size: %d --\n", buf, (int)len);
+		printf(" --      contents     --\n");
+		unsigned char* ptr = buf;
+		while ( ptr < (unsigned char*)buf + len ) {
+		    printf("%02x", *ptr);
+		    ptr++;
+		}
+		printf("\n");	
 		hashkey = SockAddr_hashkey(addr);
 		htres = hashtb_seek(hte, hashkey->buf, hashkey->length, 0);
 		rec = NULL;
