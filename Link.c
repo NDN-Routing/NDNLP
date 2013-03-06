@@ -143,6 +143,7 @@ bool LMD_registered(LMD self, SockAddr srcaddr) {
 }
 
 void LMD_reg(LMD self, SockAddr srcaddr) {
+	printf("in LMD_reg\n");
 	struct hashtb_enumerator htee; struct hashtb_enumerator* hte = &htee;
 	int htres; LMDRec rec = NULL;
 	struct ccn_charbuf* hashkey = SockAddr_hashkey(srcaddr);
@@ -156,6 +157,7 @@ void LMD_reg(LMD self, SockAddr srcaddr) {
 	hashtb_end(hte);
 
 	if (SockAddr_equals(LMD_fallbackAddr_inst(), srcaddr)) {
+		printf("fallback gets set\n");
 		self->fallback = rec;
 	}
 }
@@ -232,16 +234,30 @@ void LMD_demux(LMD self) {
 		    ptr++;
 		}
 		printf("\n");	
+		printf(" -- src addr: --\n");
+		struct sockaddr_ll* sll_dbg = (struct sockaddr_ll*)(SockAddr_addr(addr)); 
+		ptr = sll_dbg->sll_addr;
+		while ( ptr < sll_dbg->sll_addr + 6 ) {
+		    printf("%02x", *ptr);
+		    ptr++;
+		}	
+		printf("\n");
+		printf(" --   sll_family in struct %p, offset: %p: %04x --\n", sll_dbg, &(sll_dbg->sll_family), sll_dbg->sll_family);
+		printf(" --   sa_family in struct %p, offset:%p %04x --\n", addr->addr, &(addr->addr->sa_family), addr->addr->sa_family);
 		hashkey = SockAddr_hashkey(addr);
 		htres = hashtb_seek(hte, hashkey->buf, hashkey->length, 0);
+		printf("hashtb_seek returns: %d\n", htres);
 		rec = NULL;
 		if (htres == HT_OLD_ENTRY) {
+			printf("htres == HT_OLD_ENTRY\n"); /**/
 			rec = *((LMDRec*)hte->data);
 		} else {
+			printf("htres != HT_OLD_ENTRY\n"); /**/
 			rec = self->fallback;
 			if (htres == HT_NEW_ENTRY) hashtb_delete(hte);
 		}
 		if (rec != NULL) {
+			printf("about to call LMDRec_deliver\n"); /**/
 			LMDRec_deliver(rec, buf, len, addr);
 			buf = malloc(self->mtu);
 		}
@@ -270,6 +286,7 @@ NdnlpPkt LMDRec_read(LMDRec self, SockAddr srcaddr) {
 	void* packet; size_t len; NdnlpPkt pkt = NULL;
 	SockAddr addr = srcaddr == NULL ? SockAddr_ctor() : srcaddr;
 	if (DgramBuf_get(self->demuxBuf, &packet, &len, addr)) {
+		printf("LMDRec_read\n"); /**/
 		DgramBuf_consumeOne(self->demuxBuf);
 		pkt = NdnlpPkt_ctor(packet, len, false);
 		if (pkt == NULL) free(packet);
@@ -361,6 +378,7 @@ LMD LinkC_lEth(PollMgr pm, char* ifname) {
 	}
 
 	SockAddr lAddr = SockAddr_create(&addr, sizeof(struct sockaddr_ll));
+	((struct sockaddr_ll*)(SockAddr_addr(lAddr)))->sll_family = AF_PACKET;
 	LMD lmd = LMD_ctor(nbs, lAddr, mtu); //LMD defined on line 647 of ndnld.h
 	//SockAddr lAddr
 	return lmd;
@@ -422,7 +440,7 @@ SockAddr LinkC_parseEther(char* str) {
 	if (phyaddr == NULL) return NULL;
 
 	struct sockaddr_ll addr;
-	addr.sll_family = AF_INET;
+	addr.sll_family = AF_PACKET;
 	addr.sll_protocol = htobe16(LinkC_eth_proto);
 	addr.sll_halen = sizeof(struct ether_addr);
 	memcpy(addr.sll_addr, phyaddr, sizeof(struct ether_addr));

@@ -25,6 +25,7 @@
 	#define be64toh(x) OSSwapBigToHostInt64(x)
 	#define le64toh(x) OSSwapLittleToHostInt64(x)
 	#define ENABLE_ETHER_BPF
+	#define AF_PACKET  0xab /* workaround for SockAddr_haskey */
 // not defined in BSD, but we need it to retrieve dest MAC addr of outgoing packets
 struct sockaddr_ll {
 	unsigned short sll_family;   /* Always AF_PACKET */

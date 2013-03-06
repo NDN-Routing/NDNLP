@@ -80,22 +80,40 @@ socklen_t* SockAddr_addrlenp(SockAddr self) {
 struct ccn_charbuf* SockAddr_hashkey(SockAddr self) {
 	if (self->hashkey == NULL) self->hashkey = ccn_charbuf_create();
 	else ccn_charbuf_reset(self->hashkey);
-	switch (self->addr->sa_family) {
+	void* dbg = &(self->addr->sa_family);
+	unsigned char* moved = (unsigned char*)dbg - 1;
+	//printf("switch() on self->addr->sa_family-1 = %04x at addr: %p\n", self->addr->sa_family, &(self->addr->sa_family));
+	//printf("switch() on self->addr->sa_family-1 = %04x at addr: %p\n", *moved, moved);
+	//switch (self->addr->sa_family) {
+	switch (*moved) {
 		case AF_INET6: {
 			struct sockaddr_in6* sin6 = (struct sockaddr_in6*)self->addr;
 			ccn_charbuf_append(self->hashkey, &(sin6->sin6_addr), sizeof(struct in6_addr));
 			ccn_charbuf_append(self->hashkey, &(sin6->sin6_port), sizeof(in_port_t));
 			} break;
-#ifdef __linux__
+//#ifdef __linux__
 		case AF_PACKET: {
+			//printf("SockAddr_hashkey AF_PACKET\n"); /**/
 			struct sockaddr_ll* sll = (struct sockaddr_ll*)self->addr;
+		
+		       	unsigned char* dbg = sll->sll_addr; /**/
+			//printf("SockAddr_hashkey using:\n");
+			//while ( dbg < sll->sll_addr + 6 ) {
+			  //  printf("%02x:", *dbg);
+			    //dbg++;
+			//}	
+			//printf("\n"); /**/
+			printf("sll_halen before ccn_charbug_append: %d\n", sll->sll_halen);
+
 			ccn_charbuf_append(self->hashkey, &(sll->sll_addr), sll->sll_halen);
 			} break;
-#endif
+//#endif
 		default:
 			ccn_charbuf_append(self->hashkey, self->addr, self->addrlen);
 			break;
 	}
+	if (self->hashkey == NULL ) /**/
+	    printf("self->hashey == NULL!!\n"); /**/
 	return self->hashkey;
 }
 
@@ -503,8 +521,20 @@ size_t NBS_read(NBS self, void* buf, size_t count, SockAddr srcaddr) {
 				printf("\n");
 				//exit(1);
 				uint8_t* sadll = ((struct sockaddr_ll*)(SockAddr_addr(srcaddr)))->sll_addr;
-	            	 	memcpy(sadll, eh->ether_shost, sizeof(struct sockaddr_ll));
-	            	 	DgramBuf_append(self->dbufR, data, 0, datalen, BufMode_clone, srcaddr); 
+	            	 	memcpy(sadll, eh->ether_shost, sizeof(((struct sockaddr_ll*)(SockAddr_addr(srcaddr)))->sll_addr));
+				((struct sockaddr_ll*)(SockAddr_addr(srcaddr)))->sll_family = AF_PACKET;	
+				((struct sockaddr_ll*)(SockAddr_addr(srcaddr)))->sll_halen = 6;
+
+				printf("sll_family = %04x\n", ((struct sockaddr_ll*)(SockAddr_addr(srcaddr)))->sll_family);
+				
+				unsigned char* addrdbg = (unsigned char*)sadll;
+			        printf("SRC MAC:\n");
+				while (addrdbg < sadll + 6) {
+				    printf("%02x", *addrdbg);
+				    addrdbg++; 
+				}
+	            	        printf("\n");	
+				DgramBuf_append(self->dbufR, data, 0, datalen, BufMode_clone, srcaddr); 
 	            	 	ptr += BPF_WORDALIGN(bpf_packet->bh_hdrlen + bpf_packet->bh_caplen);
 	            	 }
 	            	 /* get first packet */
@@ -513,6 +543,8 @@ size_t NBS_read(NBS self, void* buf, size_t count, SockAddr srcaddr) {
 			 	DgramBuf_consumeOne(self->dbufR);
 			 	//return len;
 			 }
+
+
 			 //printf("DgramBuf_get called, then put %d byte packet into %p\n", (int)len, buf);
 			 //unsigned char* dbg = buf;
 			 //while ( dbg < (unsigned char*)buf + len ) {
