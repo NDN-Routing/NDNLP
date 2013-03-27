@@ -659,14 +659,14 @@ int CapsH_createBPF(char* ifname) {
 		
 		/* get mac address of ifname */
 		struct ifaddrs *ifap, *ifaptr;
-		unsigned char thishwaddr[6];
-		unsigned char* ptr;
+		uint8_t thishwaddr[6];
+		uint8_t* ptr;
 
 	 	if ( getifaddrs(&ifap) == 0 ) {
 		    for ( ifaptr = ifap; ifaptr != NULL; ifaptr = ifaptr->ifa_next ) {
 		        if( ((ifaptr)->ifa_addr)->sa_family == AF_LINK ) {
 			    if ( strcmp(ifname, ifaptr->ifa_name) == 0 ) {
-			        ptr = (unsigned char *)LLADDR((struct sockaddr_dl *)(ifaptr)->ifa_addr); 
+			        ptr = (uint8_t*)LLADDR((struct sockaddr_dl *)(ifaptr)->ifa_addr); 
 				thishwaddr[0] = *ptr;
 				thishwaddr[1] = *(ptr+1);
 				thishwaddr[2] = *(ptr+2);
