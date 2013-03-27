@@ -9,12 +9,6 @@
 #include <arpa/inet.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
-
-//#ifdef ENABLE_ETHER_BPF
-//#include <net/bpf.h>
-//#include <net/if_dl.h>
-//#endif
-
 #include <net/if.h>
 #include <net/ethernet.h>
 #include <fcntl.h>
