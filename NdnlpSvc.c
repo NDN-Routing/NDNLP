@@ -54,7 +54,6 @@ void NdnlpSvc_msg(NdnlpSvc self, CcnbMsg msg) {
 			DataPkt_setFlags(pkt, DataPkt_getFlags(pkt) | DataPktFlag_RLA);
 			SentPkts_insert(self->sentPkts, pkt);
 		}
-		printf("before link_write\n"); /**/
 		Link_write(self->link, pkt);
 	}
 	NdnlpPktA_dtor(pkts, false);

@@ -27,7 +27,9 @@
 	#define ENABLE_ETHER_BPF
 	#define AF_PACKET  0xab /* workaround for SockAddr_haskey */
 // not defined in BSD, but we need it to retrieve dest MAC addr of outgoing packets
-struct sockaddr_ll {
+
+struct __attribute__((__packed__)) sockaddr_ll {
+	unsigned char  padding;      /* so this struct will line up with BDS's sockaddr struct */
 	unsigned short sll_family;   /* Always AF_PACKET */
 	unsigned short sll_protocol; /* Physical layer protocol */
 	int            sll_ifindex;  /* Interface number */

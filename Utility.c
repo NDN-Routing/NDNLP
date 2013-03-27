@@ -80,40 +80,20 @@ socklen_t* SockAddr_addrlenp(SockAddr self) {
 struct ccn_charbuf* SockAddr_hashkey(SockAddr self) {
 	if (self->hashkey == NULL) self->hashkey = ccn_charbuf_create();
 	else ccn_charbuf_reset(self->hashkey);
-	void* dbg = &(self->addr->sa_family);
-	unsigned char* moved = (unsigned char*)dbg - 1;
-	//printf("switch() on self->addr->sa_family-1 = %04x at addr: %p\n", self->addr->sa_family, &(self->addr->sa_family));
-	//printf("switch() on self->addr->sa_family-1 = %04x at addr: %p\n", *moved, moved);
-	//switch (self->addr->sa_family) {
-	switch (*moved) {
+	switch (self->addr->sa_family) {
 		case AF_INET6: {
 			struct sockaddr_in6* sin6 = (struct sockaddr_in6*)self->addr;
 			ccn_charbuf_append(self->hashkey, &(sin6->sin6_addr), sizeof(struct in6_addr));
 			ccn_charbuf_append(self->hashkey, &(sin6->sin6_port), sizeof(in_port_t));
 			} break;
-//#ifdef __linux__
 		case AF_PACKET: {
-			//printf("SockAddr_hashkey AF_PACKET\n"); /**/
 			struct sockaddr_ll* sll = (struct sockaddr_ll*)self->addr;
-		
-		       	unsigned char* dbg = sll->sll_addr; /**/
-			//printf("SockAddr_hashkey using:\n");
-			//while ( dbg < sll->sll_addr + 6 ) {
-			  //  printf("%02x:", *dbg);
-			    //dbg++;
-			//}	
-			//printf("\n"); /**/
-			printf("sll_halen before ccn_charbug_append: %d\n", sll->sll_halen);
-
 			ccn_charbuf_append(self->hashkey, &(sll->sll_addr), sll->sll_halen);
 			} break;
-//#endif
 		default:
 			ccn_charbuf_append(self->hashkey, self->addr, self->addrlen);
 			break;
 	}
-	if (self->hashkey == NULL ) /**/
-	    printf("self->hashey == NULL!!\n"); /**/
 	return self->hashkey;
 }
 
@@ -357,21 +337,7 @@ void PollMgr_poll(PollMgr self) {
 			rec->pfd = NULL;
 		}
 	}
-	
-	//int c; /**/
-	//printf("\n\n");
-	//for ( c = 0; c < self->count; c++ ){ /**/
-	//    printf("--fd: %d, events = 0x%04x\n", self->fds[c].fd, self->fds[c].events); /**/
-	//} /**/
-	
-
 	poll(self->fds, nfds, self->timeout);
-	
-	//int c; /**/
-	//for ( c = 0; c < self->count; c++ ){ /**/
-	//    printf("--fd: %d, revents = 0x%04x\n", self->fds[c].fd, self->fds[c].revents); /**/
-	//} /**/
-
 	for (int i = 0; i < self->capacity; ++i) {
 		PollMgrRec rec = self->records + i;
 		if (rec->fd == 0 || rec->pfd == NULL) continue;
@@ -477,63 +443,21 @@ size_t NBS_read(NBS self, void* buf, size_t count, SockAddr srcaddr) {
 	            int res = 0;
 	            struct bpf_hdr* bpf_packet;
 	            int index = 0;
-	            //size_t* first_len;
 	            struct ether_header* eh;
-		    //printf(" [self->bpf_len] = %d\n", self->bpf_len); 
-		    printf("about to read from bpf socket...\n");
 	            if ( (res = read(self->sockR, buf, self->bpf_len)) > 0 ) {
-	            	 char* ptr = (char*)buf;
-			 printf("\n\n[res] %d bytes read into %p from bpf device: %d\n", res, buf, self->sockR);
-	            	 while ( ptr < ((char*)buf + res) ) {
-	            	 	printf("reading new packet in buffer located at %p\n", buf);
+	            	 uint8_t* ptr = (uint8_t*)buf;
+	            	 while ( ptr < ((uint8_t*)buf + res) ) {
 				bpf_packet = (struct bpf_hdr*)ptr;
-	            	 	data = (char*)bpf_packet + bpf_packet->bh_hdrlen + sizeof(struct ether_header);
+	            	 	data = (uint8_t*)bpf_packet + bpf_packet->bh_hdrlen + sizeof(struct ether_header);
 	            	 	int datalen = bpf_packet->bh_datalen - sizeof(struct ether_header);
 				
-				printf("--- bpf_hdr: caplen: %d, datalen: %d, hdrlen:%d\n", bpf_packet->bh_caplen, bpf_packet->bh_datalen, bpf_packet->bh_hdrlen);
-				printf("--- sizeof ether header: %d\n", (int)sizeof(struct ether_header));
-				//printf("bpf_packet points to: %p\n", bpf_packet);
-				eh = (struct ether_header*)((char*)bpf_packet + bpf_packet->bh_hdrlen);
+				eh = (struct ether_header*)((uint8_t*)bpf_packet + bpf_packet->bh_hdrlen);
 
-				struct ether_addr src_MAC;
-				struct ether_addr dest_MAC;
-				
-				printf("*** ETHERNET PACKET RECIEVED ***\n");
-				memcpy(&src_MAC, &eh->ether_shost, sizeof(src_MAC));
-				memcpy(&dest_MAC, &eh->ether_dhost, sizeof(dest_MAC));
-				printf("   src MAC:  %s\n", ether_ntoa(&src_MAC));
-				printf("   dest MAC:  %s\n", ether_ntoa(&dest_MAC));
-				printf("   eth type: %4X\n", htons(eh->ether_type));
-				printf("***          ******          ***\n");
-				unsigned char* dbg = (unsigned char*)eh;
-				printf(" *** full ethernet frame ***\n");
-				while ( dbg < (unsigned char*)eh + datalen + sizeof(struct ether_header) ) {
-				    printf("%02x", *dbg);
-				    dbg++;
-				}
-				printf("\n***		***\n");
-				dbg = data;
-				printf("%d byte payload, will be returned in %p:\n", datalen, buf);
-				while ( dbg < (unsigned char*)data + datalen ) {
-				    printf("%02x", *dbg);
-				    dbg++;
-				}
-				printf("\n");
-				//exit(1);
 				uint8_t* sadll = ((struct sockaddr_ll*)(SockAddr_addr(srcaddr)))->sll_addr;
 	            	 	memcpy(sadll, eh->ether_shost, sizeof(((struct sockaddr_ll*)(SockAddr_addr(srcaddr)))->sll_addr));
 				((struct sockaddr_ll*)(SockAddr_addr(srcaddr)))->sll_family = AF_PACKET;	
 				((struct sockaddr_ll*)(SockAddr_addr(srcaddr)))->sll_halen = 6;
-
-				printf("sll_family = %04x\n", ((struct sockaddr_ll*)(SockAddr_addr(srcaddr)))->sll_family);
-				
-				unsigned char* addrdbg = (unsigned char*)sadll;
-			        printf("SRC MAC:\n");
-				while (addrdbg < sadll + 6) {
-				    printf("%02x", *addrdbg);
-				    addrdbg++; 
-				}
-	            	        printf("\n");	
+	
 				DgramBuf_append(self->dbufR, data, 0, datalen, BufMode_clone, srcaddr); 
 	            	 	ptr += BPF_WORDALIGN(bpf_packet->bh_hdrlen + bpf_packet->bh_caplen);
 	            	 }
@@ -541,19 +465,7 @@ size_t NBS_read(NBS self, void* buf, size_t count, SockAddr srcaddr) {
 			 if (DgramBuf_get(self->dbufR, &data, &len, srcaddr)) {
 			 	memcpy(buf, data, len);
 			 	DgramBuf_consumeOne(self->dbufR);
-			 	//return len;
 			 }
-
-
-			 //printf("DgramBuf_get called, then put %d byte packet into %p\n", (int)len, buf);
-			 //unsigned char* dbg = buf;
-			 //while ( dbg < (unsigned char*)buf + len ) {
-			 //    printf("%02x", *dbg);
-			 //    dbg++;
-		   	 //}
-			 //printf("\n");
-			 //printf("NBS_read returning packet at %p\n", buf);
-	            	 //pos = *first_len;
 	             }
 		     if (res == -1) {
 		     	 if (errno == EAGAIN || errno == EWOULDBLOCK) self->canR = false;
@@ -561,11 +473,9 @@ size_t NBS_read(NBS self, void* buf, size_t count, SockAddr srcaddr) {
 		     } else {
 		     	 pos += len;
 		     }
-		     printf("NBS_read returning %d bytes\n", (int)pos);
 		     return pos;
 	        }
 #endif // ENABLE_ETHER_BPF
-//#ifdef ENABLE_ETHER
        	        void* recvbuf = (uint8_t*)buf + pos;
 		size_t recvbuflen = count - pos;
 		ssize_t res;
@@ -581,7 +491,6 @@ size_t NBS_read(NBS self, void* buf, size_t count, SockAddr srcaddr) {
 			pos += res;
 		}
 	return pos;
-//#endif // ENABLE_ETHER
 	}
 	return 0;
 }
@@ -594,7 +503,6 @@ void NBS_pushback(NBS self, void* data, size_t start, size_t len, SockAddr srcad
 }
 
 void NBS_write(NBS self, void* data, size_t start, size_t len, SockAddr dstaddr) {
-	printf("NBS_write called, device: %d\n", self->sockW); /**/
 	if (NBS_isDgram(self)) {
 		DgramBuf_append(self->dbufW, data, start, len, BufMode_own, dstaddr);
 		if (self->sock_type == SockType_BPF) {
@@ -610,25 +518,10 @@ void NBS_pollCb(void* pself, PollMgrEvt evt, struct pollfd* fd) {
 	NBS self = (NBS)pself;
 	switch (evt) {
 		case PollMgrEvt_prepare:
-			//printf("PollMgrEvt prepare\n");
 			if (self->sockR == fd->fd) {
 				fd->events |= POLLIN;
 			}
-
-			//printf(" --- fd = %d\n", fd->fd); /**/
-			//if ( self->sockW == fd->fd ) /**/
-			//    printf(" --- self->sockW == fd->fd\n"); /**/
-			//if ( NBS_isDgram(self) )
-			//    printf(" --- NBS_isDgram\n"); /**/
-			//if ( NBS_isDgram(self) ) { /**/
-			//    printf(" --- is Dgram\n"); /**/ 
-			//    if ( !DgramBuf_empty(self->dbufW) ) /**/
-			//        printf(" --- !DgramBuf_empty\b"); /**/
-			//}
-			//printf("End PollMgrEvt\n"); /**/ 
-
 			if (self->sockW == fd->fd && ((NBS_isDgram(self)) ? !DgramBuf_empty(self->dbufW) : !StreamBuf_empty(self->sbufW))) {
-				//printf("events for fd %d set to POLLOUT\n", self->sockW);
 				fd->events |= POLLOUT;
 			}
 			break;
@@ -653,14 +546,11 @@ void NBS_pollCb(void* pself, PollMgrEvt evt, struct pollfd* fd) {
 }
 
 void NBS_deferredWrite(NBS self) {
-	printf("\n\nNBS_deferredWrite called\n"); /**/
 	void* data; size_t len; ssize_t res;
 	SockAddr dstaddr; size_t eth_header_len; void* frame;
 	uint8_t* sadll; struct ether_header* eh;
 
 	switch ( self->sock_type ) {
-	    
-//#ifdef ENABLE_ETHER
 	    
 	    case SockType_Dgram:
 		dstaddr = SockAddr_ctor();
@@ -676,12 +566,8 @@ void NBS_deferredWrite(NBS self) {
 		}
 		SockAddr_dtor(dstaddr);
 		break;
-//#endif
 
-//#ifdef ENABLE_ETHER_BPF
-	    
 	    case SockType_BPF:
-		printf("deferredWrite: SockType_BPF\n"); /**/
 		dstaddr = SockAddr_ctor();
 		while (self->canW && DgramBuf_get(self->dbufW, &data, &len, dstaddr)) {
 			eth_header_len = sizeof(struct ether_header);
@@ -691,23 +577,6 @@ void NBS_deferredWrite(NBS self) {
 			memcpy(eh->ether_dhost, sadll, sizeof(eh->ether_dhost));
 			eh->ether_type = ntohs(LinkC_eth_proto);
 			memcpy(frame+eth_header_len, data, len);
-			
-			printf("just before writing to BPF device: %d\n", self->sockW); /**/
-			struct ether_addr src_MAC;
-			struct ether_addr dest_MAC;	
-			printf("*** SENDING ETHERNET PACKET ***\n");
-			memcpy(&src_MAC, &eh->ether_shost, sizeof(src_MAC));
-			memcpy(&dest_MAC, &eh->ether_dhost, sizeof(dest_MAC));
-			printf("   src MAC:  %s\n", ether_ntoa(&src_MAC));
-			printf("   dest MAC:  %s\n", ether_ntoa(&dest_MAC));
-			printf("   eth type: %4X\n", htons(eh->ether_type));
-			unsigned char* dbg = (unsigned char*)frame + eth_header_len;
-			while ( dbg < (unsigned char*)frame + len + eth_header_len ) {
-			    printf("%02x", *dbg);
-			    dbg++;
-			}
-			printf("\n");
-			printf("***          ******          ***\n");
 			
 			res = write(self->sockW, frame, len+eth_header_len);
 			free(frame);	
@@ -721,7 +590,6 @@ void NBS_deferredWrite(NBS self) {
 		}
 		SockAddr_dtor(dstaddr);
 		break;
-//#endif
 
 	    default:
 		while (self->canW && StreamBuf_get(self->sbufW, &data, &len)) {
@@ -734,50 +602,7 @@ void NBS_deferredWrite(NBS self) {
 				StreamBuf_consume(self->sbufW, (size_t)res);
 			}
 		}
-	}
-	
-	
-	
-	/*if (self->sock_type == SockType_Dgram) {
-		SockAddr dstaddr = SockAddr_ctor();
-		while (self->canW && DgramBuf_get(self->dbufW, &data, &len, dstaddr)) {
-#ifdef ENABLE_ETHER
-			res = sendto(self->sockW, data, len, 0, SockAddr_addr(dstaddr), SockAddr_addrlen(dstaddr));
-#elif defined(ENABLE_ETHER_BPF)
-			size_t eth_header_len = sizeof(struct ether_header);
-			void* frame = malloc(len+eth_header_len);
-			uint8_t* sadll = ((struct sockaddr_ll*)(SockAddr_addr(dstaddr)))->sll_addr;
-			//struct sockaddr_ll* sadll = (struct sockaddr_ll*)malloc(sizeof(struct sockaddr_ll));
-			//uint8_t* dstaddr_ll = sadll->sll_addr;
-			//uint8_t* dstaddr_ll = NULL;
-			struct ether_header* eh = (struct ether_header*)frame;
-			memcpy(eh->ether_dhost, sadll, sizeof(eh->ether_dhost));
-			memcpy(frame+eth_header_len, data, len);
-			res = write(self->sockW, frame, len+eth_header_len);
-						
-#endif
-			if (res == -1) {
-				if (errno == EAGAIN || errno == EWOULDBLOCK) self->canW = false;
-				else self->error = true;
-				break;
-			} else {
-				DgramBuf_consumeOne(self->dbufW);
-			}
-		}
-		SockAddr_dtor(dstaddr);
-	} else {
-		while (self->canW && StreamBuf_get(self->sbufW, &data, &len)) {
-			res = write(self->sockW, data, len);
-			if (res == -1) {
-				if (errno == EAGAIN || errno == EWOULDBLOCK) self->canW = false;
-				else self->error = true;
-				break;
-			} else {
-				StreamBuf_consume(self->sbufW, (size_t)res);
-			}
-		}
-	}
-	*/
+	}	
 }
 
 uid_t CapsH_ruid;
@@ -805,14 +630,14 @@ int CapsH_createBPF(char* ifname) {
 	
 	seteuid(CapsH_euid);
 
-	for ( i = 0; i < 99; i++ ) { // make sure we test every bpf file
+	for ( i = 0; i < 99; i++ ) { /* make sure we test every bpf file */
 	    sprintf(filename, "/dev/bpf%i", i);
 	    bpf = open(filename, O_RDWR);
 	    if ( bpf >= 0 ) {
 		printf("opened file: %s\n", filename);
 		struct ifreq bound_if;
 	        strcpy(bound_if.ifr_name, ifname);
-		// attach to given interface 
+		/* attach to given interface */
 		if ( ioctl(bpf, BIOCSETIF, &bound_if) > 0 ) {
              	    printf("Error binding bpf device to %s\n", ifname);
                     perror("interface error");
@@ -821,33 +646,18 @@ int CapsH_createBPF(char* ifname) {
 		printf("bound bpf to %s\n", ifname);
 				
 		int opt = 1;
-		// set device to nonblocking
+		/* set device to nonblocking */
 		if( ioctl(bpf, FIONBIO, &opt) == -1 ) {
 		    perror("error setting nonblockig BPF\n");
 		    return -1;
 		}
-		// return immediately when a packet is received
+		/* return immediately when a packet is received */
 		if( ioctl( bpf, BIOCIMMEDIATE, &opt ) == -1 ) {
 		    perror("error setting BIOCIMMEDIATE mode\n");
                     return -1;
 		}
 		
-	        /* 
-		 * set up filter rules
-		   we will filter by destination MAC address and ether type
-		*/
-				  //struct ether_addr src_MAC;
-				  //struct ether_addr dest_MAC;
-				  //
-				  //printf("*** ETHERNET PACKET RECIEVED ***\n");
-				  //memcpy(&src_MAC, &eh->ether_shost, sizeof(src_MAC));
-				  //memcpy(&dest_MAC, &eh->ether_dhost, sizeof(dest_MAC));
-				  //printf("   src MAC:  %s\n", ether_ntoa(&src_MAC));
-				  //printf("   dest MAC:  %s\n", ether_ntoa(&dest_MAC));
-				  //printf("   eth type: %4X\n", htons(eh->ether_type));
-				  //printf("***          ******          ***\n");
-		
-		//get mac address of ifname
+		/* get mac address of ifname */
 		struct ifaddrs *ifap, *ifaptr;
 		unsigned char thishwaddr[6];
 		unsigned char* ptr;
@@ -855,10 +665,7 @@ int CapsH_createBPF(char* ifname) {
 	 	if ( getifaddrs(&ifap) == 0 ) {
 		    for ( ifaptr = ifap; ifaptr != NULL; ifaptr = ifaptr->ifa_next ) {
 		        if( ((ifaptr)->ifa_addr)->sa_family == AF_LINK ) {
-			    //printf("\n ethernet address of %s: %02x:%02x:%02x:%02x:%02x:%02x\n", ifaptr->ifa_name, *ptr, *(ptr+1), *(ptr+2),
-					    										//*(ptr+3), *(ptr+4), *(ptr+5));
 			    if ( strcmp(ifname, ifaptr->ifa_name) == 0 ) {
-				printf("found if %s\n", ifaptr->ifa_name);
 			        ptr = (unsigned char *)LLADDR((struct sockaddr_dl *)(ifaptr)->ifa_addr); 
 				thishwaddr[0] = *ptr;
 				thishwaddr[1] = *(ptr+1);
@@ -875,12 +682,10 @@ int CapsH_createBPF(char* ifname) {
 		    printf("enable to get MAC address of %s\n", ifname);
 		    return -1;
 		}
-	
-		printf("hw addr of %s: %02x:%02x:%02x:%02x:%02x:%02x\n",ifname,thishwaddr[0],thishwaddr[1],thishwaddr[2],thishwaddr[3],thishwaddr[4],thishwaddr[5]);
 
+		/* filter by destination address, then by ether type */	
     		struct bpf_program fcode = {0};
     		struct bpf_insn insns[] = {
-		    // filter by destination address
 		    BPF_STMT(BPF_LD+BPF_B+BPF_ABS, 0),
 		    BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, thishwaddr[0], 0, 13),
 		    BPF_STMT(BPF_LD+BPF_B+BPF_ABS, 1),
@@ -893,10 +698,10 @@ int CapsH_createBPF(char* ifname) {
 		    BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, thishwaddr[4], 0, 5),
 		    BPF_STMT(BPF_LD+BPF_B+BPF_ABS, 5),
 		    BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, thishwaddr[5], 0, 3),
-    		    // copy protocol value (byte offset 12 of ether frame) into accumulator register
+    		    /* copy protocol value (byte offset 12 of ether frame) into accumulator register */
     		    BPF_STMT(BPF_LD+BPF_H+BPF_ABS, 12),
-    		    // If accumulator register is equal to LinkC_eth_proto, execute following return STMT,
-    		    // If not, jump to STMT that returns 0 (drop packet)
+    		    /* If accumulator register is equal to LinkC_eth_proto, execute following return STMT */
+    		    /* If not, jump to STMT that returns 0 (drop packet) */
     		    BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, LinkC_eth_proto, 0, 1),
     		    BPF_STMT(BPF_RET+BPF_K, (u_int)-1),
     		    BPF_STMT(BPF_RET+BPF_K, 0),

@@ -79,7 +79,6 @@ void Link_write(Link self, NdnlpPkt pkt) {
 	}
 	size_t len = NdnlpPkt_length(pkt);
 	uint8_t* buf = NdnlpPkt_detachBuf(pkt);
-	printf("before NBS_write\n"); /**/
 	NBS_write(self->nbs, buf, 0, len, self->addr);
 }
 
@@ -143,7 +142,6 @@ bool LMD_registered(LMD self, SockAddr srcaddr) {
 }
 
 void LMD_reg(LMD self, SockAddr srcaddr) {
-	printf("in LMD_reg\n");
 	struct hashtb_enumerator htee; struct hashtb_enumerator* hte = &htee;
 	int htres; LMDRec rec = NULL;
 	struct ccn_charbuf* hashkey = SockAddr_hashkey(srcaddr);
@@ -157,7 +155,6 @@ void LMD_reg(LMD self, SockAddr srcaddr) {
 	hashtb_end(hte);
 
 	if (SockAddr_equals(LMD_fallbackAddr_inst(), srcaddr)) {
-		printf("fallback gets set\n");
 		self->fallback = rec;
 	}
 }
@@ -223,41 +220,18 @@ void LMD_demux(LMD self) {
 	void* buf = malloc(self->mtu); size_t len;
 
 	hashtb_start(self->demux, hte);
-//	printf("LMD_demux asking NBS_read to put packet into: %p\n", buf);
 	while ((len = NBS_read(self->nbs, buf, self->mtu, addr)) > 0) {
-		printf(" -- processing packet in LMD_demux-- \n");
-		printf(" -- location: %p, size: %d --\n", buf, (int)len);
-		printf(" --      contents     --\n");
-		unsigned char* ptr = buf;
-		while ( ptr < (unsigned char*)buf + len ) {
-		    printf("%02x", *ptr);
-		    ptr++;
-		}
-		printf("\n");	
-		printf(" -- src addr: --\n");
-		struct sockaddr_ll* sll_dbg = (struct sockaddr_ll*)(SockAddr_addr(addr)); 
-		ptr = sll_dbg->sll_addr;
-		while ( ptr < sll_dbg->sll_addr + 6 ) {
-		    printf("%02x", *ptr);
-		    ptr++;
-		}	
-		printf("\n");
-		printf(" --   sll_family in struct %p, offset: %p: %04x --\n", sll_dbg, &(sll_dbg->sll_family), sll_dbg->sll_family);
-		printf(" --   sa_family in struct %p, offset:%p %04x --\n", addr->addr, &(addr->addr->sa_family), addr->addr->sa_family);
+	        	
 		hashkey = SockAddr_hashkey(addr);
 		htres = hashtb_seek(hte, hashkey->buf, hashkey->length, 0);
-		printf("hashtb_seek returns: %d\n", htres);
 		rec = NULL;
 		if (htres == HT_OLD_ENTRY) {
-			printf("htres == HT_OLD_ENTRY\n"); /**/
 			rec = *((LMDRec*)hte->data);
 		} else {
-			printf("htres != HT_OLD_ENTRY\n"); /**/
 			rec = self->fallback;
 			if (htres == HT_NEW_ENTRY) hashtb_delete(hte);
 		}
 		if (rec != NULL) {
-			printf("about to call LMDRec_deliver\n"); /**/
 			LMDRec_deliver(rec, buf, len, addr);
 			buf = malloc(self->mtu);
 		}
@@ -286,7 +260,6 @@ NdnlpPkt LMDRec_read(LMDRec self, SockAddr srcaddr) {
 	void* packet; size_t len; NdnlpPkt pkt = NULL;
 	SockAddr addr = srcaddr == NULL ? SockAddr_ctor() : srcaddr;
 	if (DgramBuf_get(self->demuxBuf, &packet, &len, addr)) {
-		printf("LMDRec_read\n"); /**/
 		DgramBuf_consumeOne(self->demuxBuf);
 		pkt = NdnlpPkt_ctor(packet, len, false);
 		if (pkt == NULL) free(packet);
@@ -344,7 +317,7 @@ LMD LinkC_lEth(PollMgr pm, char* ifname) {
 	NBS_pollAttach(nbs, pm);
 
 	SockAddr lAddr = SockAddr_create(&addr, sizeof(struct sockaddr_ll));
-	LMD lmd = LMD_ctor(nbs, lAddr, mtu); //LMD defined on line 647 of ndnld.h
+	LMD lmd = LMD_ctor(nbs, lAddr, mtu);
 	return lmd;
 }
 
@@ -355,7 +328,7 @@ Link LinkC_rEth(LMD lmd, SockAddr rAddr) {
 	if (!LMD_registered(lmd, rAddr)) link = Link_ctorDgram(lmd, rAddr);
 	return link;
 }
-#elif defined(ENABLE_ETHER_BPF) // Create BPF device
+#elif defined(ENABLE_ETHER_BPF)
 LMD LinkC_lEth(PollMgr pm, char* ifname) {
 	int mtu;
 	
@@ -371,7 +344,7 @@ LMD LinkC_lEth(PollMgr pm, char* ifname) {
 
 	NBS_pollAttach(nbs, pm);
 	
-	// request size of BPF buffer
+	/* get size of BPF buffer */
 	if( ioctl( bpf, BIOCGBLEN, &nbs->bpf_len ) == -1 ) {
 	    perror("error getting size of bpf device\n");
  	    return NULL;	
@@ -379,8 +352,7 @@ LMD LinkC_lEth(PollMgr pm, char* ifname) {
 
 	SockAddr lAddr = SockAddr_create(&addr, sizeof(struct sockaddr_ll));
 	((struct sockaddr_ll*)(SockAddr_addr(lAddr)))->sll_family = AF_PACKET;
-	LMD lmd = LMD_ctor(nbs, lAddr, mtu); //LMD defined on line 647 of ndnld.h
-	//SockAddr lAddr
+	LMD lmd = LMD_ctor(nbs, lAddr, mtu);
 	return lmd;
 }
 Link LinkC_rEth(LMD lmd, SockAddr rAddr) {
@@ -451,8 +423,6 @@ bool LinkC_getIfInfo(char* ifname, int* pifindex, int* pmtu) {
 	int sock = socket(AF_INET, SOCK_DGRAM, 0);
 	struct ifreq ifr;
 	strncpy(ifr.ifr_name, ifname, IFNAMSIZ);
-	//if (0 != ioctl(sock, SIOCGIFINDEX, &ifr)) { close(sock); return false; }
-	//*pifindex = ifr.ifr_ifindex;
 	*pifindex = if_nametoindex(ifname);
 	if (0 != ioctl(sock, SIOCGIFMTU, &ifr)) { close(sock); return false; }
 	*pmtu = ifr.ifr_mtu;
