@@ -9,7 +9,11 @@
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <net/if.h>
-#include <net/bpf.h>
+
+//#ifdef ENABLE_ETHER_BPF
+//#include <net/bpf.h>
+//#endif
+
 #include "ndnld.h"
 
 Link Link_ctorStream(NBS nbs) {

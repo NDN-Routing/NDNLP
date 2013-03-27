@@ -26,7 +26,9 @@
 	#define le64toh(x) OSSwapLittleToHostInt64(x)
 	#define ENABLE_ETHER_BPF
 	#define AF_PACKET  0xab /* workaround for SockAddr_haskey */
-// not defined in BSD, but we need it to retrieve dest MAC addr of outgoing packets
+               // not defined in BSD, but we need it to retrieve dest MAC addr of outgoing packets
+        #include <net/bpf.h>
+        #include <net/if_dl.h>
 
 struct __attribute__((__packed__)) sockaddr_ll {
 	unsigned char  padding;      /* so this struct will line up with BDS's sockaddr struct */

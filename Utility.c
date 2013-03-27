@@ -9,11 +9,15 @@
 #include <arpa/inet.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
-#include <net/bpf.h>
+
+//#ifdef ENABLE_ETHER_BPF
+//#include <net/bpf.h>
+//#include <net/if_dl.h>
+//#endif
+
 #include <net/if.h>
 #include <net/ethernet.h>
 #include <fcntl.h>
-#include <net/if_dl.h>
 #include <ifaddrs.h>
 #include "ndnld.h"
 
@@ -576,7 +580,7 @@ void NBS_deferredWrite(NBS self) {
 			eh = (struct ether_header*)frame;
 			memcpy(eh->ether_dhost, sadll, sizeof(eh->ether_dhost));
 			eh->ether_type = ntohs(LinkC_eth_proto);
-			memcpy(frame+eth_header_len, data, len);
+			memcpy((uint8_t*)frame+eth_header_len, data, len);
 			
 			res = write(self->sockW, frame, len+eth_header_len);
 			free(frame);	
