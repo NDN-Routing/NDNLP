@@ -10,6 +10,23 @@
 	#include <endian.h>
 #elif __FreeBSD__
 	#include <sys/endian.h>
+	#define ENABLE_ETHER_BPF
+	#define ENABLE_FREEBSD_TYPES
+	#define AF_PACKET  0xab /* workaround for SockAddr_haskey */
+               // not defined in BSD, but we need it to retrieve dest MAC addr of outgoing packets
+        #include <net/bpf.h>
+        #include <net/if_dl.h>
+
+struct __attribute__((__packed__)) sockaddr_ll {
+	unsigned char  padding;      /* so this struct will line up with BDS's sockaddr struct */
+	unsigned short sll_family;   /* Always AF_PACKET */
+	unsigned short sll_protocol; /* Physical layer protocol */
+	int            sll_ifindex;  /* Interface number */
+	unsigned short sll_hatype;   /* Header type */
+	unsigned char  sll_pkttype;  /* Packet type */
+	unsigned char  sll_halen;    /* Length of address */
+	unsigned char  sll_addr[8];  /* Physical layer address */
+};
 #elif __APPLE__
 	#include <libkern/OSByteOrder.h>
 	#define htobe16(x) OSSwapHostToBigInt16(x)

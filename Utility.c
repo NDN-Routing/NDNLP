@@ -440,7 +440,6 @@ size_t NBS_read(NBS self, void* buf, size_t count, SockAddr srcaddr) {
 	        if ( self->sock_type == SockType_BPF ) {
 	            int res = 0;
 	            struct bpf_hdr* bpf_packet;
-	            int index = 0;
 	            struct ether_header* eh;
 	            if ( (res = read(self->sockR, buf, self->bpf_len)) > 0 ) {
 	            	 uint8_t* ptr = (uint8_t*)buf;
