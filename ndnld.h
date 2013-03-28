@@ -11,7 +11,6 @@
 #elif __FreeBSD__
 	#include <sys/endian.h>
 	#define ENABLE_ETHER_BPF
-	#define ENABLE_FREEBSD_TYPES
 	#define AF_PACKET  0xab /* workaround for SockAddr_haskey */
                // not defined in BSD, but we need it to retrieve dest MAC addr of outgoing packets
         #include <net/bpf.h>

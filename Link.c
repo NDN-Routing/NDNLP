@@ -4,11 +4,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-
-#ifdef ENABLE_FREEBSD_TYPES
 #include <sys/types.h>
-#endif
-
 #include <net/ethernet.h>
 #include <arpa/inet.h>
 #include <sys/ioctl.h>
