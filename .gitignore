@@ -1,0 +1,5 @@
+.waf*
+.DS*
+build
+.lock-*
+CUnitAutomated*.xml
