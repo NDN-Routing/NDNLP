@@ -398,7 +398,7 @@ void CcnLAC_initialize(CcnLAC self, CCNDID ccndid, PollMgr pm) {
 		self->error = true;
 		return;
 	}
-	self->nbs = NBS_ctor(res, res, false);
+	self->nbs = NBS_ctor(res, res, SockType_Stream);
 	self->ccnbor = CcnbOR_ctor(self->nbs);
 	self->pm = pm;
 	PollMgr_attach(pm, res, &CcnLAC_initPollCb, self);

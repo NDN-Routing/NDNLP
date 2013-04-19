@@ -52,6 +52,7 @@ int main(int argc, char* argv[]) {
 	Link_setLossy(link, Link_lossy);
 	NdnlpSvc svc = NdnlpSvc_ctor(lac, link, CMPConn_Flags_RLA, CMPConn_SentPktsCapacity_default, CMPConn_RetryCount_default, CMPConn_RetransmitTime_default, CMPConn_AcknowledgeTime_default);
 
+	printf("pollmgr count: %d, first: %d\n", pm->count, pm->fds[0].fd);
 	while (true) {
 		PollMgr_poll(pm);
 		NdnlpSvc_run(svc);

@@ -1,7 +1,11 @@
 #include <stdlib.h>
+#include <stdio.h>
+#include <errno.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <sys/types.h>
+#include <net/ethernet.h>
 #include <arpa/inet.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>
@@ -217,6 +221,7 @@ void LMD_demux(LMD self) {
 
 	hashtb_start(self->demux, hte);
 	while ((len = NBS_read(self->nbs, buf, self->mtu, addr)) > 0) {
+	        	
 		hashkey = SockAddr_hashkey(addr);
 		htres = hashtb_seek(hte, hashkey->buf, hashkey->length, 0);
 		rec = NULL;
@@ -278,7 +283,7 @@ LMD LinkC_lUdp(PollMgr pm) {
 		return NULL;
 	}
 
-	NBS nbs = NBS_ctor(sock, sock, true);
+	NBS nbs = NBS_ctor(sock, sock, SockType_Dgram);
 	NBS_pollAttach(nbs, pm);
 
 	LMD lmd = LMD_ctor(nbs, NULL, LinkC_udp_mtu);
@@ -308,7 +313,7 @@ LMD LinkC_lEth(PollMgr pm, char* ifname) {
 		return NULL;
 	}
 
-	NBS nbs = NBS_ctor(sock, sock, true);
+	NBS nbs = NBS_ctor(sock, sock, SockType_Dgram);
 	NBS_pollAttach(nbs, pm);
 
 	SockAddr lAddr = SockAddr_create(&addr, sizeof(struct sockaddr_ll));
@@ -316,6 +321,40 @@ LMD LinkC_lEth(PollMgr pm, char* ifname) {
 	return lmd;
 }
 
+Link LinkC_rEth(LMD lmd, SockAddr rAddr) {
+	((struct sockaddr_ll*)SockAddr_addr(rAddr))->sll_ifindex = ((struct sockaddr_ll*)SockAddr_addr(LMD_localAddr(lmd)))->sll_ifindex;
+
+	Link link = NULL;
+	if (!LMD_registered(lmd, rAddr)) link = Link_ctorDgram(lmd, rAddr);
+	return link;
+}
+#elif defined(ENABLE_ETHER_BPF)
+LMD LinkC_lEth(PollMgr pm, char* ifname) {
+	int mtu;
+	
+	struct sockaddr_ll addr = {0};
+	addr.sll_family = AF_INET;
+	addr.sll_protocol = htobe16(LinkC_eth_proto);
+	if (!LinkC_getIfInfo(ifname, &(addr.sll_ifindex), &mtu)) return NULL;
+
+	int bpf = CapsH_createBPF(ifname);
+	if (bpf == -1) return NULL;
+	
+	NBS nbs = NBS_ctor(bpf, bpf, SockType_BPF);
+
+	NBS_pollAttach(nbs, pm);
+	
+	/* get size of BPF buffer */
+	if( ioctl( bpf, BIOCGBLEN, &nbs->bpf_len ) == -1 ) {
+	    perror("error getting size of bpf device\n");
+ 	    return NULL;	
+	}
+
+	SockAddr lAddr = SockAddr_create(&addr, sizeof(struct sockaddr_ll));
+	((struct sockaddr_ll*)(SockAddr_addr(lAddr)))->sll_family = AF_PACKET;
+	LMD lmd = LMD_ctor(nbs, lAddr, mtu);
+	return lmd;
+}
 Link LinkC_rEth(LMD lmd, SockAddr rAddr) {
 	((struct sockaddr_ll*)SockAddr_addr(rAddr))->sll_ifindex = ((struct sockaddr_ll*)SockAddr_addr(LMD_localAddr(lmd)))->sll_ifindex;
 
@@ -362,6 +401,29 @@ bool LinkC_getIfInfo(char* ifname, int* pifindex, int* pmtu) {
 	strncpy(ifr.ifr_name, ifname, IFNAMSIZ);
 	if (0 != ioctl(sock, SIOCGIFINDEX, &ifr)) { close(sock); return false; }
 	*pifindex = ifr.ifr_ifindex;
+	if (0 != ioctl(sock, SIOCGIFMTU, &ifr)) { close(sock); return false; }
+	*pmtu = ifr.ifr_mtu;
+	close(sock);
+	return true;
+}
+#elif defined(ENABLE_ETHER_BPF)
+SockAddr LinkC_parseEther(char* str) {
+	struct ether_addr* phyaddr = ether_aton(str);
+	if (phyaddr == NULL) return NULL;
+
+	struct sockaddr_ll addr;
+	addr.sll_family = AF_PACKET;
+	addr.sll_protocol = htobe16(LinkC_eth_proto);
+	addr.sll_halen = sizeof(struct ether_addr);
+	memcpy(addr.sll_addr, phyaddr, sizeof(struct ether_addr));
+	return SockAddr_create(&addr, sizeof(struct sockaddr_ll));
+}
+
+bool LinkC_getIfInfo(char* ifname, int* pifindex, int* pmtu) {
+	int sock = socket(AF_INET, SOCK_DGRAM, 0);
+	struct ifreq ifr;
+	strncpy(ifr.ifr_name, ifname, IFNAMSIZ);
+	*pifindex = if_nametoindex(ifname);
 	if (0 != ioctl(sock, SIOCGIFMTU, &ifr)) { close(sock); return false; }
 	*pmtu = ifr.ifr_mtu;
 	close(sock);
