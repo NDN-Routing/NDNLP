@@ -329,7 +329,6 @@ void ConnMgr_cmpConnect(ConnMgr self, CMPConn request) {
 		CMPConn_dtor(request);
 		return;
 	}
-
 	struct hashtb_enumerator htee; struct hashtb_enumerator* hte = &htee;
 	int htres; ConnMgrRec rec; struct ccn_charbuf* hashkey = SockAddr_hashkey(rAddr);
 	hashtb_start(self->htAddrRec, hte);
@@ -361,7 +360,6 @@ void ConnMgr_cmpConnect(ConnMgr self, CMPConn request) {
 		SockAddr_dtor(rAddr);
 		return;
 	}
-
 	rec = ConnMgrRec_ctor();//create record
 	rec->cmpConn = request;
 	rec->link = link;

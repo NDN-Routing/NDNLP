@@ -26,10 +26,10 @@ ndnld has been tested with FreeBSD 9.
 * Unit tests do not compile on FreeBSD.
 * UDP lower-layer with IPv6 addresses is always available.
 * UDP lower-layer with IPv4 addresses is available when `ipv6_ipv4mapping="YES"` is specified in /etc/rc.conf.
-* Ethernet lower-layer is not supported due to lack of AF\_PACKET.
+* Ethernet lower-layer is supported via Berkeley Packet Filter.
 
 ### Mac OS
-ndnld compiles on Mac OS X 10.6.8 and 10.8.2, but its functionality is not fully tested.
+ndnld compiles on Mac OS X 10.6.8 and 10.8.2, and has been fully tested on 10.8.2
 
 ## USAGE
 ### Install
