@@ -165,7 +165,7 @@ void CcnH_pollPrepare(struct ccn* ccnh, struct pollfd* fd) {
 void CcnH_pollRun(struct ccn* ccnh, struct pollfd* fd) {
 	//if (fd->revents & (POLLIN | POLLOUT)) {
 		ccn_run(ccnh, 0);
-	//}
+	//
 }
 
 CcnbOR CcnbOR_ctor(NBS nbs) {
@@ -333,8 +333,8 @@ void CcnCC_pollCb(void* pself, PollMgrEvt evt, struct pollfd* fd) {
 			CcnH_pollRun(self->ccnh, fd);
 			break;
 		case PollMgrEvt_error:
-			self->error = true;
-			break;
+			printf("ndnld shutting down...\n");
+			exit(1);
 	}
 }
 
@@ -438,12 +438,17 @@ void CcnLAC_initPollCb(void* pself, PollMgrEvt evt, struct pollfd* fd) {
 			CcnH_pollPrepare(self->ccnh, fd);
 			break;
 		case PollMgrEvt_result:
+			printf("CcnH_pollRun (2)\n");
 			CcnH_pollRun(self->ccnh, fd);
 			break;
 		case PollMgrEvt_error:
+			printf("PollMgrEvt_error (2)\n");
 			self->error = true;
 			PollMgr_detach(self->pm, ccn_get_connection_fd(self->ccnh), &CcnLAC_initPollCb, self);
 			break;
+		default:
+			printf("UNKNOWN (2)\n");
+			exit(1);
 	}
 }
 
